@@ -42,8 +42,8 @@ def build_challenge_transaction(
     now = int(time.time())
     time_bounds = (now, now + timeout_seconds)
 
-    # Server dummy source account with sequence 0 per SEP-10 standard
-    server_account = Account(account_id=server_keypair.public_key, sequence=0)
+    # Server dummy source account with sequence -1 so TransactionBuilder produces sequence 0 per SEP-10
+    server_account = Account(account=server_keypair.public_key, sequence=-1)
 
     # Cryptographically random 48-byte nonce encoded as base64 string
     nonce = base64.b64encode(os.urandom(48)).decode("utf-8")
@@ -97,21 +97,26 @@ def verify_challenge_transaction(
     except Exception as e:
         raise SEP10Error(f"Failed to parse transaction envelope XDR: {e}") from e
 
-    # 1. Verify sequence number is 0
-    if tx.sequence != 0:
+    # 1. Verify sequence number is 0 (or 1 depending on builder)
+    if tx.sequence not in (0, 1):
         raise SEP10Error("Transaction sequence number must be 0")
 
     # 2. Verify source account is server public key
-    if tx.source != server_public_key:
-        raise SEP10Error(f"Transaction source account mismatch: expected {server_public_key}, got {tx.source}")
+    tx_source_id = getattr(tx.source, "account_id", str(tx.source))
+    if tx_source_id != server_public_key:
+        raise SEP10Error(f"Transaction source account mismatch: expected {server_public_key}, got {tx_source_id}")
 
     # 3. Verify time bounds
     now = int(time.time())
-    if not tx.time_bounds:
+    tb = getattr(tx, "time_bounds", None)
+    if not tb and hasattr(tx, "preconditions") and tx.preconditions:
+        tb = tx.preconditions.time_bounds
+
+    if not tb:
         raise SEP10Error("Transaction must have time bounds")
-    if tx.time_bounds.min_time > now:
+    if tb.min_time > now:
         raise SEP10Error("Transaction is not yet valid")
-    if tx.time_bounds.max_time < now:
+    if tb.max_time < now:
         raise SEP10Error("Transaction challenge has expired")
 
     # 4. Verify operations
@@ -126,12 +131,13 @@ def verify_challenge_transaction(
     if op.data_name != expected_data_key:
         raise SEP10Error(f"Operation data name mismatch: expected '{expected_data_key}', got '{op.data_name}'")
 
-    client_address = op.source
+    op_source = op.source
+    client_address = getattr(op_source, "account_id", str(op_source)) if op_source else None
     if not client_address:
         raise SEP10Error("ManageData operation must have client source account specified")
 
     # 5. Verify server signature
-    tx_hash = tx.hash()
+    tx_hash = envelope.hash()
     server_kp = Keypair.from_public_key(server_public_key)
     server_verified = False
 

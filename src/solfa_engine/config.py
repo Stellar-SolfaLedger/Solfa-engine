@@ -33,9 +33,9 @@ class Settings(BaseSettings):
     server_home_domain: str = "solfaledger.app"
 
     # Server SEP-10 Signing Key (Server identity for challenge auth)
-    # Default is a known testnet test secret key (generate/override in prod)
+    # Default is a valid testnet test secret key (generate/override in prod)
     server_signing_secret: str = Field(
-        default="SDOGV5HQZ336TYJ53M2GBH6QRL7XWCVK52WJMWFYY7I2W67X2IUBZJLU",
+        default="SB227ZKHEJPMPDW7KQVM5YUV2HR7CDFCATBP67XLL56TK5HBCE4YDAAM",
         description="Server Stellar private key (S...) for signing SEP-10 challenges",
     )
 
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # Operator Identity (Used by backend worker to call consume_credit)
     operator_secret_key: str = Field(
-        default="SCWJMYW3X6SCL33YVYU6QBNIUVK65C47OAWZ6G5V74RSLX4P2N6I24M7",
+        default="SC3DHGTWGGKA5AGSEFWGJGD6YVRAH5HQHUDW7XQFVWU3UQNBDKKFIGU3",
         description="Operator Stellar private key (S...) for calling consume_credit",
     )
 
