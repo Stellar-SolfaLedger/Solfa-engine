@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - STELLAR_NETWORK=TESTNET
+      - SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+      - PAYMENTS_CONTRACT_ID=CAWY3OQG5R6W5H32YUS2W3J2A3NZZUUS3G6C5Y667L7BWWK3W76KOG6V
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+      - ./exports:/app/exports
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

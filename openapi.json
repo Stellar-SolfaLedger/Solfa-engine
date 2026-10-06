@@ -1,0 +1,1033 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SolfaLedger Engine",
+    "description": "SolfaLedger audio-to-tonic-solfa transcription API and Stellar Soroban integration service. Transcribes songs into movable-do tonic solfa notation (d r m f s l t d) with key, tempo, meter, and timing breakdown, secured by on-chain Soroban payments.",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/auth/challenge": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request a SEP-10 challenge transaction",
+        "description": "Generates a signed Stellar challenge transaction envelope for the client's public key.",
+        "operationId": "get_challenge_auth_challenge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChallengeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Submit signed SEP-10 challenge transaction",
+        "description": "Verifies the client signature on the challenge transaction and returns a signed JWT.",
+        "operationId": "verify_challenge_auth_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify current session",
+        "description": "Returns the authenticated Stellar public key from the current Bearer token.",
+        "operationId": "get_current_user_profile_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Get Current User Profile Auth Me Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/me/entitlements": {
+      "get": {
+        "tags": [
+          "User Entitlements"
+        ],
+        "summary": "Get user subscription and credit entitlements",
+        "description": "Reads live on-chain subscription status, expiry, and remaining credits from the SolfaPayments contract.",
+        "operationId": "get_my_entitlements_me_entitlements_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/jobs": {
+      "post": {
+        "tags": [
+          "Transcription Jobs"
+        ],
+        "summary": "Submit a new audio transcription job",
+        "description": "Accepts a multipart audio file upload (MP3/WAV/M4A/OGG/FLAC, max 50MB) or an audio URL. Checks Soroban can_transcribe entitlement before queuing.",
+        "operationId": "create_job_jobs_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_job_jobs_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Transcription Jobs"
+        ],
+        "summary": "List transcription jobs for current user",
+        "description": "Returns paginated history of transcription jobs submitted by the authenticated wallet.",
+        "operationId": "list_jobs_jobs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Transcription Jobs"
+        ],
+        "summary": "Get job status and transcription results",
+        "description": "Fetches detailed status, detected musical metadata, and tonic solfa notation for a job.",
+        "operationId": "get_job_jobs__job_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/override": {
+      "post": {
+        "tags": [
+          "Transcription Jobs"
+        ],
+        "summary": "Override musical key or meter parameters without recharge",
+        "description": "Allows user to correct detected key, mode, tempo, or time signature and immediately regenerates solfa score at no cost.",
+        "operationId": "override_job_parameters_jobs__job_id__override_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{job_id}/export": {
+      "get": {
+        "tags": [
+          "Transcription Jobs"
+        ],
+        "summary": "Export transcribed score in multiple formats",
+        "description": "Export completed score as PDF document, MusicXML 3.1 score, plaintext tonic-solfa notation, or JSON.",
+        "operationId": "export_job_jobs__job_id__export_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ExportFormat",
+              "description": "Export file format",
+              "default": "txt"
+            },
+            "description": "Export file format"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint for container probes and uptime monitors.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Check Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_create_job_jobs_post": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          }
+        },
+        "type": "object",
+        "title": "Body_create_job_jobs_post"
+      },
+      "ChallengeRequest": {
+        "properties": {
+          "address": {
+            "type": "string",
+            "title": "Address",
+            "description": "Stellar public key (G...)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "address"
+        ],
+        "title": "ChallengeRequest",
+        "description": "Request SEP-10 challenge for a Stellar public key."
+      },
+      "ChallengeResponse": {
+        "properties": {
+          "transaction_xdr": {
+            "type": "string",
+            "title": "Transaction Xdr",
+            "description": "Base64 encoded Stellar challenge transaction XDR"
+          },
+          "network_passphrase": {
+            "type": "string",
+            "title": "Network Passphrase",
+            "description": "Network passphrase for verification"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_xdr",
+          "network_passphrase"
+        ],
+        "title": "ChallengeResponse",
+        "description": "SEP-10 challenge transaction envelope."
+      },
+      "EntitlementsResponse": {
+        "properties": {
+          "user": {
+            "type": "string",
+            "title": "User"
+          },
+          "can_transcribe": {
+            "type": "boolean",
+            "title": "Can Transcribe"
+          },
+          "has_active_subscription": {
+            "type": "boolean",
+            "title": "Has Active Subscription"
+          },
+          "subscription_plan_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Plan Id"
+          },
+          "subscription_expires_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscription Expires At"
+          },
+          "is_unlimited": {
+            "type": "boolean",
+            "title": "Is Unlimited",
+            "default": false
+          },
+          "credits_remaining": {
+            "type": "integer",
+            "title": "Credits Remaining",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "can_transcribe",
+          "has_active_subscription"
+        ],
+        "title": "EntitlementsResponse",
+        "description": "On-chain user subscription and credit entitlement status."
+      },
+      "ExportFormat": {
+        "type": "string",
+        "enum": [
+          "pdf",
+          "txt",
+          "musicxml",
+          "json"
+        ],
+        "title": "ExportFormat",
+        "description": "Supported score export formats."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobListResponse": {
+        "properties": {
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobResponse"
+            },
+            "type": "array",
+            "title": "Jobs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobs",
+          "total"
+        ],
+        "title": "JobListResponse",
+        "description": "List of transcription jobs for user."
+      },
+      "JobResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_address": {
+            "type": "string",
+            "title": "User Address"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "original_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Filename"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TranscriptionResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "credit_consumed": {
+            "type": "boolean",
+            "title": "Credit Consumed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_address",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "JobResponse",
+        "description": "Transcription job status and results."
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "processing",
+          "completed",
+          "failed",
+          "unbilled"
+        ],
+        "title": "JobStatus",
+        "description": "Transcription job lifecycle state."
+      },
+      "MeasureItem": {
+        "properties": {
+          "index": {
+            "type": "integer",
+            "title": "Index",
+            "description": "Measure sequence index (1-indexed)"
+          },
+          "start_sec": {
+            "type": "number",
+            "title": "Start Sec",
+            "description": "Audio timestamp when measure begins"
+          },
+          "duration_sec": {
+            "type": "number",
+            "title": "Duration Sec",
+            "description": "Measure duration in seconds"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/NoteItem"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "Notes within this bar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "index",
+          "start_sec",
+          "duration_sec"
+        ],
+        "title": "MeasureItem",
+        "description": "Single musical bar / measure containing notes."
+      },
+      "NoteItem": {
+        "properties": {
+          "solfa": {
+            "type": "string",
+            "title": "Solfa",
+            "description": "Tonic solfa syllable (d, r, m, f, s, l, t, di, ra, etc.)"
+          },
+          "octave": {
+            "type": "string",
+            "title": "Octave",
+            "description": "Octave indicator: '' for center, '1' higher, ',' lower"
+          },
+          "start_beat": {
+            "type": "number",
+            "title": "Start Beat",
+            "description": "Beat index within the measure (0-indexed)"
+          },
+          "duration_beats": {
+            "type": "number",
+            "title": "Duration Beats",
+            "description": "Note duration in beats"
+          },
+          "midi": {
+            "type": "integer",
+            "title": "Midi",
+            "description": "MIDI pitch number (e.g. 60 = Middle C)"
+          },
+          "pitch_hz": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pitch Hz",
+            "description": "Fundamental frequency in Hertz"
+          }
+        },
+        "type": "object",
+        "required": [
+          "solfa",
+          "octave",
+          "start_beat",
+          "duration_beats",
+          "midi"
+        ],
+        "title": "NoteItem",
+        "description": "Single musical note in tonic solfa notation."
+      },
+      "OverrideRequest": {
+        "properties": {
+          "key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key",
+            "description": "New musical key (e.g., 'D', 'G', 'F#')"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "major",
+                  "minor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode",
+            "description": "New mode"
+          },
+          "time_signature": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Signature",
+            "description": "New time signature (e.g. '3/4', '6/8')"
+          },
+          "bpm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bpm",
+            "description": "New BPM tempo"
+          }
+        },
+        "type": "object",
+        "title": "OverrideRequest",
+        "description": "Re-render transcription with user-specified musical parameters without additional charge."
+      },
+      "TranscriptionConfidences": {
+        "properties": {
+          "key": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Key",
+            "default": 0.9
+          },
+          "tempo": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Tempo",
+            "default": 0.9
+          },
+          "meter": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Meter",
+            "default": 0.9
+          }
+        },
+        "type": "object",
+        "title": "TranscriptionConfidences",
+        "description": "Algorithmic confidence estimates (0.0 to 1.0)."
+      },
+      "TranscriptionResult": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "Musical key root (e.g. 'C', 'G', 'F#', 'Eb')"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "major",
+              "minor"
+            ],
+            "title": "Mode",
+            "description": "Major or Minor mode",
+            "default": "major"
+          },
+          "tonic": {
+            "type": "string",
+            "title": "Tonic",
+            "description": "Full tonic specification (e.g. 'C Major' or 'A Minor')"
+          },
+          "bpm": {
+            "type": "number",
+            "title": "Bpm",
+            "description": "Detected tempo in Beats Per Minute"
+          },
+          "time_signature": {
+            "type": "string",
+            "title": "Time Signature",
+            "description": "Time signature meter (e.g. '4/4', '3/4', '6/8')"
+          },
+          "confidences": {
+            "$ref": "#/components/schemas/TranscriptionConfidences"
+          },
+          "measures": {
+            "items": {
+              "$ref": "#/components/schemas/MeasureItem"
+            },
+            "type": "array",
+            "title": "Measures"
+          },
+          "solfa_text": {
+            "type": "string",
+            "title": "Solfa Text",
+            "description": "Traditional tonic solfa textual score notation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "tonic",
+          "bpm",
+          "time_signature",
+          "solfa_text"
+        ],
+        "title": "TranscriptionResult",
+        "description": "Complete musical transcription payload."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VerifyRequest": {
+        "properties": {
+          "transaction_xdr": {
+            "type": "string",
+            "title": "Transaction Xdr",
+            "description": "Signed challenge transaction XDR from wallet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transaction_xdr"
+        ],
+        "title": "VerifyRequest",
+        "description": "Submit signed challenge transaction XDR."
+      },
+      "VerifyResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "address",
+          "expires_in"
+        ],
+        "title": "VerifyResponse",
+        "description": "Authentication token response."
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
