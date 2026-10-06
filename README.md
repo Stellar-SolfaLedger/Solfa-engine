@@ -77,7 +77,7 @@ The complete API schema is published at:
 
 | Contract Property | Testnet Value |
 | :--- | :--- |
-| **Contract ID** | `CAWY3OQG5R6W5H32YUS2W3J2A3NZZUUS3G6C5Y667L7BWWK3W76KOG6V` |
+| **Contract ID** | `CAAU3BUYOH7464VPCE26ONCSHQRR3O6VLR7SVN5UPDK4ZLMT47EW2Q33` |
 | **Network** | Stellar Testnet (`Test SDF Network ; September 2015`) |
 | **RPC Endpoint** | `https://soroban-testnet.stellar.org` |
 | **Native Asset (XLM)** | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` |
@@ -164,13 +164,18 @@ cp .env.example .env
 # 5. Run test suite
 pytest -v
 
-# 6. Start API server
+# 6. Start API server (In-Process Worker Mode)
 uvicorn solfa_engine.main:app --reload --host 0.0.0.0 --port 8000
+
+# 7. (Optional) Run with Distributed Celery + Redis Worker
+# Set WORKER_MODE=celery in .env, start Redis, and launch:
+celery -A solfa_engine.worker.celery_app worker --loglevel=info
+celery -A solfa_engine.worker.celery_app beat --loglevel=info
 ```
 
 ### Docker
 ```bash
-# Build and run containerized service
+# Build and run containerized service with Redis
 docker-compose up --build
 ```
 
