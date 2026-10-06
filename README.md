@@ -183,3 +183,6 @@ docker-compose up --build
 - **Anti-Malware & File Validation**: Uploads are restricted to 50 MB, format-checked by magic byte headers, and checked against security scan hooks.
 - **Automatic Data Retention**: Audio files and temporary export artifacts are automatically purged after $N$ days (`AUDIO_RETENTION_DAYS=7`).
 - **Sliding-Window Rate Limiting**: Protects against denial-of-service attempts with standard 60 req/min limits and `Retry-After` response headers.
+- **Live Soroban Operator Settlement**: Background worker uses the `OPERATOR_SECRET_KEY` to assemble, simulate, footprint, sign, and submit `consume_credit` transactions to Soroban RPC, with automatic fallback and retry if the network is temporarily congested.
+- **Worker Scalability**: Supports both in-process `asyncio.create_task` and enterprise distributed queueing with `Celery + Redis` (`WORKER_MODE=celery`).
+- **Unbilled Job Auto-Recovery**: Periodic background task in FastAPI lifespan and Celery Beat periodically checks for unbilled transcriptions and re-attempts contract credit deduction until settlement succeeds.

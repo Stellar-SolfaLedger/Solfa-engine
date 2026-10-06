@@ -45,8 +45,8 @@ class Settings(BaseSettings):
     soroban_rpc_url: str = "https://soroban-testnet.stellar.org"
     horizon_url: str = "https://horizon-testnet.stellar.org"
 
-    # SolfaPayments Contract ID
-    payments_contract_id: str = "CAWY3OQG5R6W5H32YUS2W3J2A3NZZUUS3G6C5Y667L7BWWK3W76KOG6V"
+    # SolfaPayments Contract ID (Valid Stellar Soroban Contract Address)
+    payments_contract_id: str = "CAAU3BUYOH7464VPCE26ONCSHQRR3O6VLR7SVN5UPDK4ZLMT47EW2Q33"
 
     # Operator Identity (Used by backend worker to call consume_credit)
     operator_secret_key: str = Field(
@@ -66,7 +66,8 @@ class Settings(BaseSettings):
     virus_scan_enabled: bool = False
     virus_scan_webhook_url: str | None = None
 
-    # Async Pipeline
+    # Async Pipeline & Worker Mode
+    worker_mode: Literal["in_process", "celery"] = "in_process"
     database_url: str = "sqlite:///./solfa_engine.db"
     redis_url: str = "redis://localhost:6379/0"
 

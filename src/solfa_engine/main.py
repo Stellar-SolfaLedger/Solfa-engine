@@ -26,7 +26,32 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         pass
 
+    # Background task: periodically retry on-chain credit settlement for unbilled jobs
+    import asyncio
+    from solfa_engine.transcription.pipeline import retry_unbilled_jobs
+
+    stop_event = asyncio.Event()
+
+    async def periodic_settlement_retry():
+        while not stop_event.is_set():
+            try:
+                await asyncio.sleep(60)
+                await retry_unbilled_jobs()
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                pass
+
+    retry_task = asyncio.create_task(periodic_settlement_retry())
+
     yield
+
+    stop_event.set()
+    retry_task.cancel()
+    try:
+        await retry_task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(

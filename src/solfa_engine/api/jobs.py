@@ -112,10 +112,15 @@ async def create_job(
     )
 
     try:
+        if settings.worker_mode == "celery":
+            from solfa_engine.worker.tasks import transcribe_audio_job
+            transcribe_audio_job.delay(job_id)
+        else:
+            from solfa_engine.transcription.pipeline import run_transcription_worker
+            asyncio.create_task(run_transcription_worker(job_id))
+    except Exception:
         from solfa_engine.transcription.pipeline import run_transcription_worker
         asyncio.create_task(run_transcription_worker(job_id))
-    except Exception:
-        pass
 
     return job
 
