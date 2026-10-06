@@ -3,7 +3,7 @@
 import asyncio
 from pathlib import Path
 import uuid
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 import httpx
 
 from solfa_engine.config import settings
@@ -107,7 +107,43 @@ async def create_job(
         from solfa_engine.transcription.pipeline import run_transcription_worker
         asyncio.create_task(run_transcription_worker(job_id))
     except Exception:
-        # Fallback if pipeline is being loaded
         pass
+
+    return job
+
+
+@router.get(
+    "",
+    response_model=JobListResponse,
+    summary="List transcription jobs for current user",
+    description="Returns paginated history of transcription jobs submitted by the authenticated wallet.",
+)
+async def list_jobs(
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    user_address: str = Depends(get_current_user),
+) -> JobListResponse:
+    """Retrieve history of jobs submitted by current user."""
+    jobs, total = job_repository.list_jobs(user_address=user_address, limit=limit, offset=offset)
+    return JobListResponse(jobs=jobs, total=total)
+
+
+@router.get(
+    "/{job_id}",
+    response_model=JobResponse,
+    summary="Get job status and transcription results",
+    description="Fetches detailed status, detected musical metadata, and tonic solfa notation for a job.",
+)
+async def get_job(
+    job_id: str,
+    user_address: str = Depends(get_current_user),
+) -> JobResponse:
+    """Fetch status or results of a transcription job."""
+    job = job_repository.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Job '{job_id}' not found")
+
+    if job.user_address != user_address:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to job")
 
     return job
